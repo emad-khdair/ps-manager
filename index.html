@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pharmalink IT - Script Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D1117;--bg2:#161B22;--bg3:#21262D;--bg4:#2D333B;
+  --border:#30363D;--border2:#444C56;
+  --text:#F0F6FC;--muted:#8B949E;--muted2:#6E7681;
+  --blue:#58A6FF;--blue-dim:#1c3557;--blue-bg:#0d2137;
+  --green:#3FB950;--green-dim:#1a3a1f;
+  --amber:#D29922;--amber-dim:#3a2e0a;
+  --red:#F85149;--red-dim:#3a1010;
+  --purple:#D2A8FF;--purple-dim:#2d1f4a;
+  --r:6px;--rlg:10px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);height:50px;padding:0 18px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.logo{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px}
+.logo-icon{width:26px;height:26px;background:var(--blue-dim);border:1px solid var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+
+/* BUTTONS */
+.btn{font-family:'Inter',sans-serif;font-size:12px;font-weight:500;padding:6px 13px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background .12s,border-color .12s;white-space:nowrap;line-height:1}
+.btn:hover{background:var(--bg4);border-color:var(--border2)}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:#1c6ed0;border-color:#2680e8;color:#fff}
+.btn-primary:hover{background:#1a63bc}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-icon{padding:6px 8px}
+.btn-danger{color:var(--red)}
+.btn-danger:hover{background:var(--red-dim);border-color:var(--red)}
+.btn-success{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
+/* LAYOUT */
+.workspace{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:230px;min-width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar-top{padding:10px 10px 0;flex-shrink:0}
+.search-wrap{position:relative;margin-bottom:8px}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);opacity:.4;pointer-events:none}
+.search{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px 6px 30px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif}
+.search:focus{outline:none;border-color:var(--blue)}
+.search::placeholder{color:var(--muted2)}
+.sidebar-label{font-size:10px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;padding:0 4px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.script-list{flex:1;overflow-y:auto;padding:0 6px 8px}
+.script-list::-webkit-scrollbar{width:3px}
+.script-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.script-item{padding:9px 10px;border-radius:var(--r);cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:background .1s}
+.script-item:hover{background:var(--bg3)}
+.script-item.active{background:var(--blue-bg);border-color:var(--blue-dim)}
+.si-name{font-size:12.5px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.si-meta{display:flex;align-items:center;gap:5px}
+.tag{font-size:10px;font-weight:600;padding:1px 7px;border-radius:20px}
+.tag-general{background:var(--blue-dim);color:var(--blue)}
+.tag-update{background:var(--green-dim);color:var(--green)}
+.tag-install{background:var(--amber-dim);color:var(--amber)}
+.tag-deploy{background:#1e2f3a;color:#38bdf8}
+.tag-maintenance{background:var(--purple-dim);color:var(--purple)}
+.si-lines{font-size:10px;color:var(--muted2)}
+.no-scripts{padding:20px 12px;font-size:12px;color:var(--muted);text-align:center;line-height:1.7}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* EMPTY */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:var(--muted);padding:40px;text-align:center}
+.empty svg{opacity:.2}
+.empty p{font-size:14px;line-height:1.6}
+
+/* EDITOR WRAP */
+#editor-wrap{display:none;flex-direction:column;flex:1;overflow:hidden}
+
+/* TOOLBAR */
+.editor-toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.name-input{font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:5px 10px;color:var(--text);width:210px}
+.name-input:focus{outline:none;border-color:var(--blue)}
+.tag-select{font-family:'Inter',sans-serif;font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:5px 9px;color:var(--text)}
+.tag-select:focus{outline:none;border-color:var(--blue)}
+.toolbar-right{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* GIST BADGE */
+.gist-badge{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--muted)}
+.gist-badge.live{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.gist-badge.unsaved{border-color:var(--amber);background:var(--amber-dim);color:var(--amber)}
+.gist-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* EDITOR AREA */
+.editor-area{flex:1;display:flex;flex-direction:column;padding:12px;gap:10px;overflow:hidden;background:var(--bg)}
+.code-editor{flex:1;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.7;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;color:var(--text);resize:none;tab-size:4;overflow-y:auto}
+.code-editor:focus{outline:none;border-color:var(--blue)}
+.code-editor::placeholder{color:var(--muted2)}
+
+/* IEX BOX */
+.iex-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px 14px;flex-shrink:0}
+.iex-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.iex-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.iex-hint{font-size:11px;color:var(--muted2);margin-left:auto}
+.iex-row{display:flex;align-items:center;gap:8px}
+.iex-cmd{flex:1;font-family:'JetBrains Mono',monospace;font-size:12.5px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 12px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;user-select:all;cursor:text}
+.iex-cmd.placeholder{color:var(--muted2);font-style:italic}
+.copy-btn.copied{background:var(--green-dim)!important;border-color:var(--green)!important;color:var(--green)!important}
+
+/* STATUS BAR */
+.statusbar{background:var(--bg2);border-top:1px solid var(--border);padding:5px 16px;display:flex;align-items:center;gap:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0}
+.s-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;background:var(--green)}
+.s-dot.warn{background:var(--amber)}
+.s-dot.err{background:var(--red)}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:999}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rlg);padding:24px 28px;width:420px;max-width:95vw}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:18px;color:var(--text)}
+.form-group{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+.form-input{width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;color:var(--text)}
+.form-input:focus{outline:none;border-color:var(--blue)}
+.form-hint{font-size:11px;color:var(--muted2);margin-top:5px;line-height:1.5}
+.form-select{width:100%;font-family:'Inter',sans-serif;font-size:13px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 11px;color:var(--text)}
+.form-select:focus{outline:none;border-color:var(--blue)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+.token-status{display:flex;align-items:center;gap:7px;font-size:12px;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);margin-top:8px}
+.token-status.ok{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.token-status.fail{border-color:var(--red);background:var(--red-dim);color:var(--red)}
+
+/* TOAST */
+#toast{position:fixed;bottom:40px;right:20px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;font-size:13px;color:var(--text);z-index:9999;transform:translateY(16px);opacity:0;transition:all .2s;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--green);color:var(--green)}
+#toast.err{border-color:var(--red);color:var(--red)}
+#toast.info{border-color:var(--blue);color:var(--blue)}
+
+/* SPINNER */
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    Pharmalink IT - Script Manager
+  </div>
+  <div class="topbar-right">
+    <span id="token-indicator" class="gist-badge" style="cursor:pointer" onclick="openSettings()" title="GitHub Token Settings">
+      <span class="gist-dot"></span>
+      <span id="token-indicator-text">No token</span>
+    </span>
+    <button class="btn" onclick="openSettings()">⚙ Settings</button>
+    <button class="btn btn-primary" onclick="openNewModal()" id="new-btn">＋ New Script</button>
+  </div>
+</div>
+
+<!-- WORKSPACE -->
+<div class="workspace">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="search-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search" id="search" placeholder="Search scripts…" oninput="renderList()"/>
+      </div>
+      <div class="sidebar-label">
+        <span>Scripts</span>
+        <span id="count" style="background:var(--blue-dim);color:var(--blue);padding:1px 7px;border-radius:20px;font-size:10px">0</span>
+      </div>
+    </div>
+    <div class="script-list" id="script-list">
+      <div class="no-scripts">No scripts yet.<br/>Click <strong>New Script</strong> to begin.</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="empty" id="empty-state">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4M7 8l3 3-3 3"/></svg>
+      <p>Select a script from the sidebar<br/>or create a new one to get started.</p>
+      <button class="btn btn-primary" onclick="openNewModal()">＋ New Script</button>
+    </div>
+
+    <div id="editor-wrap">
+      <!-- EDITOR TOOLBAR -->
+      <div class="editor-toolbar">
+        <input class="name-input" id="script-name" placeholder="my-script.ps1" oninput="markUnsaved()"/>
+        <select class="tag-select" id="script-tag" onchange="markUnsaved()">
+          <option value="general">General</option>
+          <option value="update">Update</option>
+          <option value="install">Install</option>
+          <option value="deploy">Deploy</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+        <div class="toolbar-right">
+          <div class="gist-badge" id="gist-badge"><span class="gist-dot"></span><span id="gist-badge-text">not published</span></div>
+          <button class="btn" onclick="duplicateScript()">⧉ Duplicate</button>
+          <button class="btn btn-primary" id="save-btn" onclick="saveScript()">
+            <span id="save-label">💾 Save & Publish</span>
+          </button>
+          <button class="btn btn-icon btn-danger" onclick="deleteScript()" title="Delete">🗑</button>
+        </div>
+      </div>
+
+      <!-- EDITOR AREA -->
+      <div class="editor-area">
+        <textarea class="code-editor" id="code-editor"
+          spellcheck="false"
+          placeholder="# Paste or write your PowerShell script here…"
+          oninput="markUnsaved()"
+          onkeydown="handleTab(event)"></textarea>
+
+        <!-- IEX BOX -->
+        <div class="iex-box">
+          <div class="iex-top">
+            <span class="iex-label">⚡ iex command</span>
+            <span class="iex-hint">Paste this into any PowerShell window to run remotely</span>
+          </div>
+          <div class="iex-row">
+            <div class="iex-cmd placeholder" id="iex-display">Save & Publish to generate your iex command…</div>
+            <button class="btn copy-btn" id="copy-btn" onclick="copyIex()">📋 Copy</button>
+            <button class="btn btn-sm" onclick="openGist()" id="gist-link-btn" title="Open Gist on GitHub" style="display:none">↗ Gist</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div class="statusbar">
+  <span><span class="s-dot" id="s-dot"></span><span id="s-msg">Ready</span></span>
+  <span id="s-chars">—</span>
+  <span style="margin-left:auto" id="s-saved">—</span>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay hidden" id="settings-modal">
+  <div class="modal">
+    <div class="modal-title">⚙ GitHub Token Settings</div>
+    <div class="form-group">
+      <label class="form-label">GitHub Personal Access Token</label>
+      <input class="form-input" id="token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"/>
+      <div class="form-hint">
+        Needs <strong>gist</strong> scope only.<br/>
+        Create one at <a href="https://github.com/settings/tokens/new?scopes=gist&description=PS+Script+Manager" target="_blank">github.com/settings/tokens</a> → check <strong>gist</strong> → Generate.<br/>
+        Stored only in your browser (localStorage). Never sent anywhere except GitHub's API.
+      </div>
+      <div id="token-status-box" style="display:none" class="token-status"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" onclick="clearToken()">Clear Token</button>
+      <button class="btn" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveToken()">✓ Save & Verify</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW SCRIPT MODAL -->
+<div class="overlay hidden" id="new-modal">
+  <div class="modal" style="width:480px;max-width:96vw">
+    <div class="modal-title">📄 New Script</div>
+
+    <div class="form-group">
+      <label class="form-label">Template</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-primary" id="tpl-blank" onclick="setTemplate('blank')" style="flex:1;min-width:100px">📄 Blank</button>
+        <button class="btn btn-sm" id="tpl-sc" onclick="setTemplate('sc')" style="flex:1;min-width:100px">🛒 Store Commerce</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn btn-sm" id="tpl-su" onclick="setTemplate('su')" style="flex:1;min-width:100px">🏬 Scale Unit</button>
+        <button class="btn btn-sm" id="tpl-both" onclick="setTemplate('both')" style="flex:1;min-width:100px">🚀 SC + Scale Unit</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="name-field-group">
+      <label class="form-label">Script Name</label>
+      <input class="form-input" id="new-name" placeholder="deploy-update.ps1"
+        onkeydown="if(event.key==='Enter')createScript();if(event.key==='Escape')closeNewModal()"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="new-tag">
+        <option value="general">General</option>
+        <option value="update">Update</option>
+        <option value="install">Install</option>
+        <option value="deploy">Deploy</option>
+        <option value="maintenance">Maintenance</option>
+      </select>
+    </div>
+
+    <!-- Store Commerce only fields -->
+    <div id="sc-fields" style="display:none">
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-dim);border-radius:var(--r);padding:13px 14px;margin-bottom:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:12px;text-transform:uppercase;letter-spacing:.07em">🛒 Store Commerce — OneDrive Link</div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">OneDrive Download URL</label>
+          <input class="form-input" id="sc-only-url" placeholder="https://…sharepoint.com/…?download=1" style="font-size:11px"/>
+        </div>
+      </div>
+      <div class="form-hint" style="margin-bottom:2px;padding:0 2px">Make sure the OneDrive link ends with <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:monospace">?download=1</code> so it's a direct download.</div>
+    </div>
+
+    <!-- Scale Unit only fields -->
+    <div id="su-fields" style="display:none">
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-dim);border-radius:var(--r);padding:13px 14px;margin-bottom:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:12px;text-transform:uppercase;letter-spacing:.07em">🏬 Scale Unit — OneDrive Link</div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">OneDrive Download URL</label>
+          <input class="form-input" id="su-only-url" placeholder="https://…sharepoint.com/…?download=1" style="font-size:11px"/>
+        </div>
+      </div>
+      <div class="form-hint" style="margin-bottom:2px;padding:0 2px">Make sure the OneDrive link ends with <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:monospace">?download=1</code> so it's a direct download.</div>
+    </div>
+
+    <!-- Store Commerce + Scale Unit fields -->
+    <div id="both-fields" style="display:none">
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-dim);border-radius:var(--r);padding:13px 14px;margin-bottom:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:12px;text-transform:uppercase;letter-spacing:.07em">📦 OneDrive Links</div>
+
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Scale Unit — OneDrive Download URL</label>
+          <input class="form-input" id="both-su-url" placeholder="https://…sharepoint.com/…?download=1" style="font-size:11px"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">Store Commerce — OneDrive Download URL</label>
+          <input class="form-input" id="both-sc-url" placeholder="https://…sharepoint.com/…?download=1" style="font-size:11px"/>
+        </div>
+      </div>
+      <div class="form-hint" style="margin-bottom:2px;padding:0 2px">Make sure each OneDrive link ends with <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;font-family:monospace">?download=1</code> so it's a direct download.</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="closeNewModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="createScript()">✓ Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+const DB_KEY = 'ps_scripts_v2';
+const TOKEN_KEY = 'ps_gh_token';
+let scripts = [];
+let activeId = null;
+let unsaved = false;
+let iexCmd = '';
+let currentGistId = null;
+let currentGistUrl = null;
+let saveTimer = null;
+let activeTemplate = 'blank';
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  loadScripts();
+  updateTokenIndicator();
+  renderList();
+}
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+function loadScripts() {
+  try { scripts = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch { scripts = []; }
+}
+
+function persist() {
+  localStorage.setItem(DB_KEY, JSON.stringify(scripts));
+}
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+
+// ─── TOKEN UI ─────────────────────────────────────────────────────────────────
+function updateTokenIndicator() {
+  const t = getToken();
+  const el = document.getElementById('token-indicator');
+  const txt = document.getElementById('token-indicator-text');
+  if (t) {
+    el.className = 'gist-badge live';
+    txt.textContent = 'Token active';
+  } else {
+    el.className = 'gist-badge';
+    txt.textContent = 'No token — click to setup';
+  }
+}
+
+// ─── RENDER LIST ─────────────────────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById('script-list');
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = scripts.filter(s =>
+    s.name.toLowerCase().includes(q) || (s.tag||'').includes(q)
+  );
+  document.getElementById('count').textContent = scripts.length;
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="no-scripts">${q ? 'No results for "'+esc(q)+'"' : 'No scripts yet.<br/>Click <strong>New Script</strong> to begin.'}</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(s => `
+    <div class="script-item ${s.id===activeId?'active':''}" onclick="selectScript('${s.id}')">
+      <div class="si-name" title="${esc(s.name)}">${esc(s.name)}</div>
+      <div class="si-meta">
+        <span class="tag tag-${s.tag||'general'}">${s.tag||'general'}</span>
+        <span class="si-lines">${(s.code||'').split('\n').length} lines</span>
+        ${s.gistId ? '<span style="font-size:10px;color:var(--green)">● live</span>' : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ─── SELECT ───────────────────────────────────────────────────────────────────
+function selectScript(id) {
+  if (unsaved && activeId && !confirm('Unsaved changes — discard?')) return;
+  activeId = id;
+  unsaved = false;
+  const s = scripts.find(x => x.id === id);
+  if (!s) return;
+
+  document.getElementById('empty-state').style.display = 'none';
+  const ew = document.getElementById('editor-wrap');
+  ew.style.display = 'flex';
+  ew.style.flexDirection = 'column';
+  ew.style.flex = '1';
+  ew.style.overflow = 'hidden';
+
+  document.getElementById('script-name').value = s.name;
+  document.getElementById('script-tag').value = s.tag || 'general';
+  document.getElementById('code-editor').value = s.code || '';
+
+  currentGistId = s.gistId || null;
+  currentGistUrl = s.gistUrl || null;
+
+  if (s.gistId) {
+    const rawUrl = `https://gist.githubusercontent.com/${s.gistOwner}/${s.gistId}/raw/${s.name}`;
+    iexCmd = `iex (irm '${rawUrl}')`;
+    setIexDisplay(iexCmd, false);
+    setBadge('live', '● live on GitHub');
+    document.getElementById('gist-link-btn').style.display = '';
+  } else {
+    iexCmd = '';
+    setIexDisplay('Save & Publish to generate your iex command…', true);
+    setBadge('', 'not published');
+    document.getElementById('gist-link-btn').style.display = 'none';
+  }
+
+  updateChars(s.code || '');
+  setSaved(s.updatedAt);
+  setStatus('Loaded: ' + s.name);
+  renderList();
+}
+
+// ─── SAVE & PUBLISH TO GIST ───────────────────────────────────────────────────
+async function saveScript() {
+  if (!activeId) return;
+
+  const token = getToken();
+  if (!token) {
+    toast('⚠️ Add a GitHub token first — click Settings', 'err', 4000);
+    openSettings();
+    return;
+  }
+
+  const name = document.getElementById('script-name').value.trim() || 'untitled.ps1';
+  const tag  = document.getElementById('script-tag').value;
+  const code = document.getElementById('code-editor').value;
+  const finalName = name.endsWith('.ps1') ? name : name + '.ps1';
+
+  const idx = scripts.findIndex(x => x.id === activeId);
+  if (idx === -1) return;
+
+  setSaving(true);
+
+  try {
+    const description = `[Pharmalink IT - Script Manager] ${finalName} — ${tag}`;
+    const files = { [finalName]: { content: code || '# empty' } };
+
+    let gistData;
+
+    if (currentGistId) {
+      // UPDATE existing gist
+      const oldName = scripts[idx].name;
+      const body = { description, files: {} };
+      // If name changed, rename by nulling old file and adding new
+      if (oldName !== finalName) {
+        body.files[oldName] = null; // delete old filename in gist
+      }
+      body.files[finalName] = { content: code || '# empty' };
+
+      const r = await fetch(`https://api.github.com/gists/${currentGistId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(`GitHub API ${r.status}: ${(await r.json()).message}`);
+      gistData = await r.json();
+    } else {
+      // CREATE new gist
+      const r = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description, files, public: true })
+      });
+      if (!r.ok) throw new Error(`GitHub API ${r.status}: ${(await r.json()).message}`);
+      gistData = await r.json();
+    }
+
+    const owner = gistData.owner.login;
+    const gistId = gistData.id;
+    const gistUrl = gistData.html_url;
+    const rawUrl = `https://gist.githubusercontent.com/${owner}/${gistId}/raw/${finalName}`;
+    iexCmd = `iex (irm '${rawUrl}')`;
+
+    // Update local record
+    const now = new Date().toISOString();
+    scripts[idx] = { ...scripts[idx], name: finalName, tag, code, gistId, gistUrl, gistOwner: owner, updatedAt: now };
+    persist();
+
+    currentGistId = gistId;
+    currentGistUrl = gistUrl;
+    unsaved = false;
+
+    setIexDisplay(iexCmd, false);
+    setBadge('live', '● live on GitHub');
+    document.getElementById('gist-link-btn').style.display = '';
+    setSaved(now);
+    updateChars(code);
+    setStatus('Published ✓');
+    renderList();
+    toast('✓ Script published to GitHub Gist!', 'ok');
+
+  } catch (err) {
+    setStatus('Error: ' + err.message);
+    toast('Error: ' + err.message, 'err', 5000);
+  } finally {
+    setSaving(false);
+  }
+}
+
+// ─── CREATE ───────────────────────────────────────────────────────────────────
+function buildD365Script(opts) {
+  // opts: { includeSU: bool, includeSC: bool, suUrl: string, scUrl: string }
+  const includeSU = opts.includeSU;
+  const includeSC = opts.includeSC;
+  const suUrl = (opts.suUrl || '').trim() || 'SCALEUNIT_ONEDRIVE_URL_HERE';
+  const scUrl = (opts.scUrl || '').trim() || 'STORECOMMERCE_ONEDRIVE_URL_HERE';
+
+  let label = 'Deployment';
+  if (includeSU && includeSC) label = 'Scale Unit + Store Commerce Deployment';
+  else if (includeSU) label = 'Scale Unit Deployment';
+  else if (includeSC) label = 'Store Commerce Deployment';
+
+  const lines = [];
+  lines.push('<#');
+  lines.push('    .SYNOPSIS');
+  lines.push(`    Dynamics 365 Extension Deployment Script — ${label}`);
+  lines.push('    .DESCRIPTION');
+  lines.push('    - Downloads extension(s) from SharePoint/OneDrive');
+  lines.push('    - Double-checks version via Registry AND Manifest');
+  lines.push('    - Retries download on failure');
+  lines.push('    - Handles locked files by killing POS processes');
+  lines.push('    - Logs everything to file + Registry backup');
+  lines.push('    - Shows step-by-step status, never exits silently');
+  lines.push('#>');
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [CONFIGURATION] — UPDATE THESE LINKS');
+  lines.push('# =============================================================================');
+  if (includeSU) lines.push(`$Link_ScaleUnit_Ext     = "${suUrl}"`);
+  if (includeSC) lines.push(`$Link_StoreCommerce_Ext = "${scUrl}"`);
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [SYSTEM] PATHS & CONSTANTS');
+  lines.push('# =============================================================================');
+  lines.push('$ErrorActionPreference = "Continue"   # Never silent-exit on error');
+  lines.push('');
+  if (includeSU) {
+    lines.push('$Name_SU_Reg = "Commerce Scale Unit - MPx.Insurance.ScaleUnit.Installer"');
+    lines.push('$Path_SU_Manifest = "C:\\Program Files\\Microsoft Dynamics 365\\10.0\\Commerce Scale Unit\\Extensions\\MPx.Insurance.ScaleUnit.Installer\\POS\\MPx.InsuranceModule"');
+  }
+  if (includeSC) {
+    lines.push('$Name_SC_Reg = "Store Commerce - MPx.InsuranceModule"');
+    lines.push('$Path_SC_Manifest = "C:\\Program Files\\Microsoft Dynamics 365\\10.0\\Store Commerce\\Extensions\\MPx.InsuranceModule\\POS"');
+  }
+  lines.push('');
+  lines.push('$SafeDir  = "C:\\ProgramData\\ExtensionDeployLogs"');
+  lines.push('$LogFile  = "$SafeDir\\Deploy_History.log"');
+  lines.push('$RegPath  = "HKLM:\\SOFTWARE\\ExtensionDeployHistory"');
+  lines.push('$WorkDir  = Join-Path $env:TEMP ("ExtDeploy_" + (Get-Date -Format "yyyyMMdd_HHmmss"))');
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [INIT] STORAGE');
+  lines.push('# =============================================================================');
+  lines.push('try {');
+  lines.push('    if (!(Test-Path $SafeDir)) {');
+  lines.push('        New-Item -ItemType Directory -Path $SafeDir -Force | Out-Null');
+  lines.push('    }');
+  lines.push('    if (!(Test-Path $RegPath)) {');
+  lines.push('        New-Item -Path $RegPath -Force -ErrorAction SilentlyContinue | Out-Null');
+  lines.push('    }');
+  lines.push('} catch {}');
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [FUNCTIONS]');
+  lines.push('# =============================================================================');
+  lines.push('');
+  lines.push('function Write-Step {');
+  lines.push('    param ([string]$Message, [string]$Type = "INFO")');
+  lines.push('    $ts   = Get-Date -Format "HH:mm:ss"');
+  lines.push('    $line = "[$ts] [$Type] $Message"');
+  lines.push('    Add-Content -Path $LogFile -Value $line -ErrorAction SilentlyContinue');
+  lines.push('    switch ($Type) {');
+  lines.push('        "OK"       { Write-Host "  [ OK ]  $Message" -ForegroundColor Green }');
+  lines.push('        "FAIL"     { Write-Host "  [FAIL]  $Message" -ForegroundColor Red }');
+  lines.push('        "WARN"     { Write-Host "  [WARN]  $Message" -ForegroundColor Yellow }');
+  lines.push('        "UPDATE"   { Write-Host "  [ >> ]  $Message" -ForegroundColor Cyan }');
+  lines.push('        "VERSION"  { Write-Host "  [ VER]  $Message" -ForegroundColor Magenta }');
+  lines.push('        "SKIP"     { Write-Host "  [SKIP]  $Message" -ForegroundColor DarkYellow }');
+  lines.push('        "AUDIT"    { Write-Host "  [AUDIT] $Message" -ForegroundColor White }');
+  lines.push('        Default    { Write-Host "  [ .. ]  $Message" -ForegroundColor Gray }');
+  lines.push('    }');
+  lines.push('    [Console]::Out.Flush()');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Write-Banner {');
+  lines.push('    param ([string]$Title)');
+  lines.push('    Write-Host ""');
+  lines.push('    Write-Host ("-" * 60) -ForegroundColor DarkGray');
+  lines.push('    Write-Host "  $Title" -ForegroundColor Cyan');
+  lines.push('    Write-Host ("-" * 60) -ForegroundColor DarkGray');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Confirm-Admin {');
+  lines.push('    $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()');
+  lines.push('    $principal = New-Object Security.Principal.WindowsPrincipal($identity)');
+  lines.push('    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Get-RegistryVersion {');
+  lines.push('    param ([string]$SearchName)');
+  lines.push('    $Paths = @(');
+  lines.push('        "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*",');
+  lines.push('        "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"');
+  lines.push('    )');
+  lines.push('    $Result = Get-ItemProperty $Paths -ErrorAction SilentlyContinue |');
+  lines.push('              Where-Object { $_.DisplayName -like "*$SearchName*" } |');
+  lines.push('              Select-Object -First 1');
+  lines.push('    if ($Result) { return $Result.DisplayVersion }');
+  lines.push('    return "Not Installed"');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Get-ManifestVersion {');
+  lines.push('    param ([string]$FolderPath)');
+  lines.push('    if (Test-Path $FolderPath) {');
+  lines.push('        $Manifest = Join-Path $FolderPath "manifest.json"');
+  lines.push('        if (Test-Path $Manifest) {');
+  lines.push('            try {');
+  lines.push('                $Content = Get-Content $Manifest -Raw -ErrorAction SilentlyContinue');
+  lines.push('                if ($Content -match \'["\\s]?[Vv]ersion["\\s]?[:=]\\s*["\'\']?([\\d\\.]+)["\'\']?\') {');
+  lines.push('                    return $Matches[1]');
+  lines.push('                }');
+  lines.push('            } catch {}');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    return "Not Found"');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Get-Versions {');
+  lines.push('    param ([string]$RegName, [string]$ManifestPath)');
+  lines.push('    return @{');
+  lines.push('        Reg = Get-RegistryVersion $RegName');
+  lines.push('        Man = Get-ManifestVersion $ManifestPath');
+  lines.push('    }');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Stop-POSProcesses {');
+  lines.push('    Write-Step "Stopping POS processes to release file locks..." "INFO"');
+  lines.push('    $Targets = @("StoreCommerce", "Microsoft.Dynamics.Commerce.StoreCommerce", "RuntimeBroker")');
+  lines.push('    foreach ($T in $Targets) {');
+  lines.push('        $Procs = Get-Process -Name $T -ErrorAction SilentlyContinue');
+  lines.push('        if ($Procs) {');
+  lines.push('            $Procs | Stop-Process -Force -ErrorAction SilentlyContinue');
+  lines.push('            Write-Step "Stopped: $T" "INFO"');
+  lines.push('        }');
+  lines.push('    }');
+  lines.push('    Start-Sleep -Seconds 3');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Save-DeployRecord {');
+  lines.push('    param ($RegKey, $Role, $Status, $LinkUsed, $VerReg, $VerMan)');
+  lines.push('    $Record = @{');
+  lines.push('        LastDeployed     = Get-Date -Format "yyyy-MM-dd HH:mm:ss"');
+  lines.push('        MachineRole      = $Role');
+  lines.push('        Status           = $Status');
+  lines.push('        LinkUsed         = $LinkUsed');
+  lines.push('        Version_Registry = $VerReg');
+  lines.push('        Version_Manifest = $VerMan');
+  lines.push('        Machine          = $env:COMPUTERNAME');
+  lines.push('    }');
+  lines.push('    try {');
+  lines.push('        New-ItemProperty -Path $RegPath -Name $RegKey `');
+  lines.push('            -Value ($Record | ConvertTo-Json -Compress) `');
+  lines.push('            -PropertyType String -Force -ErrorAction SilentlyContinue | Out-Null');
+  lines.push('    } catch {}');
+  lines.push('}');
+  lines.push('');
+  lines.push('function Get-LastDeployLink {');
+  lines.push('    param ($RegKey)');
+  lines.push('    try {');
+  lines.push('        $Json = (Get-ItemProperty -Path $RegPath -Name $RegKey -ErrorAction SilentlyContinue).$RegKey');
+  lines.push('        if ($Json) {');
+  lines.push('            $Data = $Json | ConvertFrom-Json');
+  lines.push('            return $Data.LinkUsed');
+  lines.push('        }');
+  lines.push('    } catch {}');
+  lines.push('    return $null');
+  lines.push('}');
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [CORE] DEPLOY FUNCTION');
+  lines.push('# =============================================================================');
+  lines.push('function Deploy-Extension {');
+  lines.push('    param (');
+  lines.push('        [string]$Name,');
+  lines.push('        [string]$Link,');
+  lines.push('        [string]$RegName,');
+  lines.push('        [string]$ManifestPath,');
+  lines.push('        [string]$RegKey');
+  lines.push('    )');
+  lines.push('');
+  lines.push('    Write-Banner "DEPLOYING: $Name"');
+  lines.push('');
+  lines.push('    # PRE-CHECK versions');
+  lines.push('    $VerBefore = Get-Versions $RegName $ManifestPath');
+  lines.push('    Write-Step "BEFORE — Registry: $($VerBefore.Reg) | Manifest: $($VerBefore.Man)" "VERSION"');
+  lines.push('    Start-Sleep -Seconds 1');
+  lines.push('');
+  lines.push('    # PREP WORK DIR');
+  lines.push('    $PkgDir  = Join-Path $WorkDir $RegKey');
+  lines.push('    $ZipPath = Join-Path $PkgDir "Payload.zip"');
+  lines.push('    New-Item -ItemType Directory -Path $PkgDir -Force | Out-Null');
+  lines.push('');
+  lines.push('    # ── DOWNLOAD (up to 3 retries) ─────────────────────────');
+  lines.push('    Write-Step "Downloading package..." "INFO"');
+  lines.push('    $MaxRetries = 3; $Attempt = 0; $Downloaded = $false');
+  lines.push('');
+  lines.push('    do {');
+  lines.push('        $Attempt++');
+  lines.push('        if ($Attempt -gt 1) {');
+  lines.push('            Write-Step "Retry $Attempt of $MaxRetries..." "WARN"');
+  lines.push('            Start-Sleep -Seconds 5');
+  lines.push('        }');
+  lines.push('        try {');
+  lines.push('            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12');
+  lines.push('            Invoke-WebRequest -Uri $Link -OutFile $ZipPath -UseBasicParsing `');
+  lines.push('                -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" `');
+  lines.push('                -Headers @{ "Accept" = "application/octet-stream,*/*" } `');
+  lines.push('                -ErrorAction Stop');
+  lines.push('');
+  lines.push('            $SizeMB = [math]::Round((Get-Item $ZipPath).Length / 1MB, 2)');
+  lines.push('');
+  lines.push('            if ($SizeMB -lt 1) {');
+  lines.push('                Write-Step "Downloaded file too small ($SizeMB MB) — SharePoint link may need \'Anyone with the link\' permission." "WARN"');
+  lines.push('            } else {');
+  lines.push('                Write-Step "Downloaded successfully ($SizeMB MB)" "OK"');
+  lines.push('                $Downloaded = $true');
+  lines.push('            }');
+  lines.push('        } catch {');
+  lines.push('            Write-Step "Download attempt $Attempt failed: $($_.Exception.Message)" "WARN"');
+  lines.push('        }');
+  lines.push('    } until ($Downloaded -or ($Attempt -ge $MaxRetries))');
+  lines.push('');
+  lines.push('    if (!$Downloaded) {');
+  lines.push('        Write-Step "All download attempts failed. Skipping $Name." "FAIL"');
+  lines.push('        Save-DeployRecord $RegKey $Name "DownloadFailed" $Link $VerBefore.Reg $VerBefore.Man');
+  lines.push('        return $false');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    Start-Sleep -Seconds 1');
+  lines.push('');
+  lines.push('    # ── EXTRACT ────────────────────────────────────────────');
+  lines.push('    Write-Step "Extracting package..." "INFO"');
+  lines.push('    $ExtractDir = Join-Path $PkgDir "extracted"');
+  lines.push('    try {');
+  lines.push('        Expand-Archive -Path $ZipPath -DestinationPath $ExtractDir -Force');
+  lines.push('        Write-Step "Extracted successfully" "OK"');
+  lines.push('    } catch {');
+  lines.push('        Write-Step "Extraction failed: $($_.Exception.Message)" "FAIL"');
+  lines.push('        return $false');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    Start-Sleep -Seconds 1');
+  lines.push('');
+  lines.push('    # ── FIND INSTALLER ─────────────────────────────────────');
+  lines.push('    Write-Step "Locating installer EXE..." "INFO"');
+  lines.push('    $Installer = Get-ChildItem -Path $ExtractDir -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue |');
+  lines.push('                 Where-Object { $_.Name -like "*Installer*" -or $_.Name -like "*Setup*" } |');
+  lines.push('                 Select-Object -First 1');
+  lines.push('');
+  lines.push('    # Fallback: any exe');
+  lines.push('    if (!$Installer) {');
+  lines.push('        $Installer = Get-ChildItem -Path $ExtractDir -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue |');
+  lines.push('                     Select-Object -First 1');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    if (!$Installer) {');
+  lines.push('        Write-Step "No installer EXE found in package." "FAIL"');
+  lines.push('        return $false');
+  lines.push('    }');
+  lines.push('    Write-Step "Found: $($Installer.Name)" "OK"');
+  lines.push('    Start-Sleep -Seconds 1');
+  lines.push('');
+  lines.push('    # ── INSTALL (up to 3 attempts, kills POS on exit code 2) ──');
+  lines.push('    Write-Step "Running installer (this may take a few minutes)..." "UPDATE"');
+  lines.push('    $InstAttempt = 0; $Installed = $false');
+  lines.push('');
+  lines.push('    do {');
+  lines.push('        $InstAttempt++');
+  lines.push('        if ($InstAttempt -gt 1) {');
+  lines.push('            Write-Step "Install attempt $InstAttempt of 3..." "INFO"');
+  lines.push('            Start-Sleep -Seconds 5');
+  lines.push('        }');
+  lines.push('        try {');
+  lines.push('            $Process = Start-Process -FilePath $Installer.FullName `');
+  lines.push('                -ArgumentList "install" `');
+  lines.push('                -WorkingDirectory $Installer.DirectoryName `');
+  lines.push('                -Wait -PassThru -WindowStyle Hidden');
+  lines.push('');
+  lines.push('            switch ($Process.ExitCode) {');
+  lines.push('                0 {');
+  lines.push('                    Write-Step "Installer completed successfully (exit 0)" "OK"');
+  lines.push('                    $Installed = $true');
+  lines.push('                }');
+  lines.push('                2 {');
+  lines.push('                    Write-Step "Files are locked (exit 2) — killing POS processes and retrying..." "WARN"');
+  lines.push('                    Stop-POSProcesses');
+  lines.push('                }');
+  lines.push('                3010 {');
+  lines.push('                    Write-Step "Installed — a restart is required (exit 3010)" "WARN"');
+  lines.push('                    $Installed = $true');
+  lines.push('                }');
+  lines.push('                5 {');
+  lines.push('                    Write-Step "Access Denied (exit 5) — script must be run as Administrator." "FAIL"');
+  lines.push('                    Write-Step "Right-click PowerShell > \'Run as Administrator\' and try again." "WARN"');
+  lines.push('                    return $false');
+  lines.push('                }');
+  lines.push('                default {');
+  lines.push('                    Write-Step "Installer returned unexpected exit code: $($Process.ExitCode)" "WARN"');
+  lines.push('                    Start-Sleep -Seconds 5');
+  lines.push('                }');
+  lines.push('            }');
+  lines.push('        } catch {');
+  lines.push('            Write-Step "Installer error: $($_.Exception.Message)" "FAIL"');
+  lines.push('            return $false');
+  lines.push('        }');
+  lines.push('    } until ($Installed -or ($InstAttempt -ge 3))');
+  lines.push('');
+  lines.push('    if (!$Installed) {');
+  lines.push('        Write-Step "Installation failed after $InstAttempt attempts." "FAIL"');
+  lines.push('        Save-DeployRecord $RegKey $Name "InstallFailed" $Link $VerBefore.Reg $VerBefore.Man');
+  lines.push('        return $false');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    Start-Sleep -Seconds 2');
+  lines.push('');
+  lines.push('    # ── POST-CHECK versions ────────────────────────────────');
+  lines.push('    $VerAfter = Get-Versions $RegName $ManifestPath');
+  lines.push('    Write-Step "AFTER  — Registry: $($VerAfter.Reg) | Manifest: $($VerAfter.Man)" "VERSION"');
+  lines.push('');
+  lines.push('    if ($VerAfter.Reg -ne "Not Installed" -and $VerAfter.Reg -ne $VerBefore.Reg) {');
+  lines.push('        Write-Step "Version changed: $($VerBefore.Reg) → $($VerAfter.Reg)" "OK"');
+  lines.push('    } elseif ($VerAfter.Reg -ne "Not Installed") {');
+  lines.push('        Write-Step "Version unchanged (repair/reinstall applied)" "OK"');
+  lines.push('    }');
+  lines.push('');
+  lines.push('    Save-DeployRecord $RegKey $Name "Success" $Link $VerAfter.Reg $VerAfter.Man');
+  lines.push('    return $true');
+  lines.push('}');
+  lines.push('');
+  lines.push('# =============================================================================');
+  lines.push('# [MAIN]');
+  lines.push('# =============================================================================');
+  lines.push('$StartTime = Get-Date');
+  lines.push('');
+  lines.push('Write-Host ""');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push(`Write-Host "   ${label.toUpperCase()}" -ForegroundColor Cyan`);
+  lines.push('Write-Host "   $env:COMPUTERNAME  |  $(Get-Date -Format \'yyyy-MM-dd HH:mm:ss\')" -ForegroundColor DarkGray');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push('');
+  lines.push('# ── ADMIN CHECK ───────────────────────────────────────────');
+  lines.push('if (!(Confirm-Admin)) {');
+  lines.push('    Write-Host ""');
+  lines.push('    Write-Host "  [FAIL]  This script must be run as Administrator." -ForegroundColor Red');
+  lines.push('    Write-Host "          Right-click PowerShell and choose \'Run as Administrator\'." -ForegroundColor Yellow');
+  lines.push('    Write-Host ""');
+  lines.push('    Write-Host "  Press any key to exit..." -ForegroundColor DarkGray');
+  lines.push('    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")');
+  lines.push('    Exit 1');
+  lines.push('}');
+  lines.push('');
+  lines.push('New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null');
+  lines.push('');
+  lines.push('$Queue    = @()');
+  lines.push('$Results  = @{}');
+  lines.push('');
+  lines.push('# ── DETECTION ─────────────────────────────────────────────');
+  lines.push('Write-Banner "DETECTION"');
+
+  if (includeSU) {
+    lines.push('$SU_Service = Get-Service -Name "RetailStoreScaleUnitAsyncClientService" -ErrorAction SilentlyContinue');
+    lines.push('if ($SU_Service) {');
+    lines.push('    Write-Step "Scale Unit service detected." "OK"');
+    lines.push('    if (![string]::IsNullOrWhiteSpace($Link_ScaleUnit_Ext)) {');
+    lines.push('        $LastLink = Get-LastDeployLink "ScaleUnit"');
+    lines.push('        if ($LastLink -eq $Link_ScaleUnit_Ext) {');
+    lines.push('            Write-Step "Scale Unit: Same link as last deploy — skipping." "SKIP"');
+    lines.push('        } else {');
+    lines.push('            $Queue += @{ Name="Scale Unit Extension"; Link=$Link_ScaleUnit_Ext; RegName=$Name_SU_Reg; ManPath=$Path_SU_Manifest; RegKey="ScaleUnit" }');
+    lines.push('        }');
+    lines.push('    } else {');
+    lines.push('        Write-Step "Scale Unit: No link configured." "SKIP"');
+    lines.push('    }');
+    lines.push('} else {');
+    lines.push('    Write-Step "Scale Unit service not found — skipping." "SKIP"');
+    lines.push('}');
+    lines.push('');
+  }
+
+  if (includeSC) {
+    lines.push('$SC_Version = Get-RegistryVersion $Name_SC_Reg');
+    lines.push('if ($SC_Version -ne "Not Installed") {');
+    lines.push('    Write-Step "Store Commerce detected (v$SC_Version)." "OK"');
+    lines.push('    if (![string]::IsNullOrWhiteSpace($Link_StoreCommerce_Ext)) {');
+    lines.push('        $LastLink = Get-LastDeployLink "StoreCommerce"');
+    lines.push('        if ($LastLink -eq $Link_StoreCommerce_Ext) {');
+    lines.push('            Write-Step "Store Commerce: Same link as last deploy — skipping." "SKIP"');
+    lines.push('        } else {');
+    lines.push('            $Queue += @{ Name="Store Commerce Extension"; Link=$Link_StoreCommerce_Ext; RegName=$Name_SC_Reg; ManPath=$Path_SC_Manifest; RegKey="StoreCommerce" }');
+    lines.push('        }');
+    lines.push('    } else {');
+    lines.push('        Write-Step "Store Commerce: No link configured." "SKIP"');
+    lines.push('    }');
+    lines.push('} else {');
+    lines.push('    Write-Step "Store Commerce not found — skipping." "SKIP"');
+    lines.push('}');
+    lines.push('');
+  }
+
+  lines.push('# ── EXECUTE ───────────────────────────────────────────────');
+  lines.push('if ($Queue.Count -eq 0) {');
+  lines.push('    Write-Banner "NO ACTIONS NEEDED"');
+  lines.push('    Write-Step "All components are up to date." "SKIP"');
+  lines.push('} else {');
+  lines.push('    Write-Step "$($Queue.Count) package(s) queued for deployment." "UPDATE"');
+  lines.push('    Start-Sleep -Seconds 2');
+  lines.push('');
+  lines.push('    foreach ($Job in $Queue) {');
+  lines.push('        $OK = Deploy-Extension -Name $Job.Name -Link $Job.Link -RegName $Job.RegName -ManifestPath $Job.ManPath -RegKey $Job.RegKey');
+  lines.push('        $Results[$Job.Name] = $OK');
+  lines.push('        Start-Sleep -Seconds 1');
+  lines.push('    }');
+  lines.push('}');
+  lines.push('');
+  lines.push('# ── FINAL AUDIT ───────────────────────────────────────────');
+  lines.push('Write-Banner "FINAL VERSION AUDIT"');
+  lines.push('');
+
+  if (includeSU) {
+    lines.push('if ($SU_Service) {');
+    lines.push('    $V = Get-Versions $Name_SU_Reg $Path_SU_Manifest');
+    lines.push('    Write-Step "Scale Unit      — Registry: $($V.Reg) | Manifest: $($V.Man)" "AUDIT"');
+    lines.push('}');
+  }
+  if (includeSC) {
+    lines.push('if ($SC_Version -ne "Not Installed") {');
+    lines.push('    $V = Get-Versions $Name_SC_Reg $Path_SC_Manifest');
+    lines.push('    Write-Step "Store Commerce  — Registry: $($V.Reg) | Manifest: $($V.Man)" "AUDIT"');
+    lines.push('}');
+  }
+
+  lines.push('');
+  lines.push('# ── SUMMARY ───────────────────────────────────────────────');
+  lines.push('$Elapsed = [math]::Round(((Get-Date) - $StartTime).TotalSeconds, 1)');
+  lines.push('Write-Host ""');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push('Write-Host "   SUMMARY" -ForegroundColor Cyan');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push('');
+  lines.push('$AllOK = $true');
+  lines.push('foreach ($Item in $Results.GetEnumerator()) {');
+  lines.push('    if ($Item.Value) {');
+  lines.push('        Write-Host "  [ OK ]  $($Item.Key)" -ForegroundColor Green');
+  lines.push('    } else {');
+  lines.push('        Write-Host "  [FAIL]  $($Item.Key)" -ForegroundColor Red');
+  lines.push('        $AllOK = $false');
+  lines.push('    }');
+  lines.push('}');
+  lines.push('if ($Results.Count -eq 0) {');
+  lines.push('    Write-Host "  [SKIP]  Nothing to deploy." -ForegroundColor DarkYellow');
+  lines.push('}');
+  lines.push('');
+  lines.push('Write-Host ""');
+  lines.push('Write-Host "  Time: ${Elapsed}s  |  Log: $LogFile" -ForegroundColor DarkGray');
+  lines.push('');
+  lines.push('# CLEANUP');
+  lines.push('Remove-Item $WorkDir -Recurse -Force -ErrorAction SilentlyContinue');
+  lines.push('');
+  lines.push('Write-Host ""');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push('if ($AllOK) {');
+  lines.push('    Write-Host "  ALL DONE — Hasta la vista, baby." -ForegroundColor Green');
+  lines.push('} else {');
+  lines.push('    Write-Host "  COMPLETED WITH ERRORS — Check log above." -ForegroundColor Red');
+  lines.push('}');
+  lines.push('Write-Host ("=" * 60) -ForegroundColor Cyan');
+  lines.push('Write-Host ""');
+  lines.push('');
+  lines.push('# PAUSE so the window doesn\'t close immediately');
+  lines.push('Write-Host "  Press any key to exit..." -ForegroundColor DarkGray');
+  lines.push('$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")');
+  lines.push('');
+  lines.push('if ($AllOK) { Exit 0 } else { Exit 1 }');
+
+  return lines.join('\n');
+}
+
+function createScript() {
+  const tag = document.getElementById('new-tag').value;
+  const id  = uid();
+  let code;
+  let name;
+
+  if (activeTemplate === 'sc') {
+    const scUrl = document.getElementById('sc-only-url').value.trim();
+    code = buildD365Script({ includeSU: false, includeSC: true, scUrl });
+    name = (document.getElementById('new-name').value.trim() || 'deploy-store-commerce');
+  } else if (activeTemplate === 'su') {
+    const suUrl = document.getElementById('su-only-url').value.trim();
+    code = buildD365Script({ includeSU: true, includeSC: false, suUrl });
+    name = (document.getElementById('new-name').value.trim() || 'deploy-scale-unit');
+  } else if (activeTemplate === 'both') {
+    const suUrl = document.getElementById('both-su-url').value.trim();
+    const scUrl = document.getElementById('both-sc-url').value.trim();
+    code = buildD365Script({ includeSU: true, includeSC: true, suUrl, scUrl });
+    name = (document.getElementById('new-name').value.trim() || 'deploy-scale-unit-store-commerce');
+  } else {
+    name = document.getElementById('new-name').value.trim() || 'new-script';
+    code = `# ${name}\n# Created: ${new Date().toLocaleDateString()}\n# Category: ${tag}\n\n`;
+  }
+
+  if (!name.endsWith('.ps1')) name += '.ps1';
+
+  scripts.push({ id, name, tag, code, createdAt: new Date().toISOString() });
+  persist();
+  closeNewModal();
+  selectScript(id);
+  renderList();
+  const isDeployTpl = activeTemplate === 'sc' || activeTemplate === 'su' || activeTemplate === 'both';
+  toast(isDeployTpl ? '🚀 Deployment script ready — Save & Publish to get your iex command' : 'Script created — edit and click Save & Publish', 'info');
+}
+
+// ─── DUPLICATE ────────────────────────────────────────────────────────────────
+function duplicateScript() {
+  if (!activeId) return;
+  const s = scripts.find(x => x.id === activeId);
+  if (!s) return;
+  const id = uid();
+  const newName = s.name.replace(/\.ps1$/i, '') + '-copy.ps1';
+  // Strip gist info so it gets its own gist on save
+  scripts.push({ id, name: newName, tag: s.tag, code: s.code, createdAt: new Date().toISOString() });
+  persist();
+  selectScript(id);
+  renderList();
+  toast('Duplicated — save to publish as a new Gist', 'info');
+}
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+async function deleteScript() {
+  if (!activeId) return;
+  const s = scripts.find(x => x.id === activeId);
+  if (!confirm(`Delete "${s?.name}"?${s?.gistId ? '\n\nThis will also delete the GitHub Gist.' : ''}`)) return;
+
+  // Delete gist if exists
+  if (s?.gistId) {
+    const token = getToken();
+    if (token) {
+      try {
+        await fetch(`https://api.github.com/gists/${s.gistId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `token ${token}` }
+        });
+      } catch {}
+    }
+  }
+
+  scripts = scripts.filter(x => x.id !== activeId);
+  persist();
+  activeId = null; unsaved = false; iexCmd = ''; currentGistId = null; currentGistUrl = null;
+  document.getElementById('editor-wrap').style.display = 'none';
+  document.getElementById('empty-state').style.display = '';
+  renderList();
+  toast('Deleted', 'ok');
+}
+
+// ─── SETTINGS ─────────────────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('token-input').value = getToken();
+  document.getElementById('token-status-box').style.display = 'none';
+  document.getElementById('settings-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('token-input').focus(), 60);
+}
+
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+async function saveToken() {
+  const t = document.getElementById('token-input').value.trim();
+  if (!t) { toast('Enter a token first', 'err'); return; }
+
+  const box = document.getElementById('token-status-box');
+  box.style.display = 'flex';
+  box.className = 'token-status';
+  box.innerHTML = '<span class="spin"></span> Verifying…';
+
+  try {
+    const r = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `token ${t}` }
+    });
+    if (!r.ok) throw new Error('Invalid token');
+    const u = await r.json();
+    localStorage.setItem(TOKEN_KEY, t);
+    box.className = 'token-status ok';
+    box.innerHTML = `✓ Authenticated as <strong>${u.login}</strong>`;
+    updateTokenIndicator();
+    setTimeout(closeSettings, 1200);
+    toast(`✓ Token saved — logged in as ${u.login}`, 'ok');
+  } catch {
+    box.className = 'token-status fail';
+    box.innerHTML = '✗ Token invalid or no gist scope — check and try again';
+  }
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  updateTokenIndicator();
+  closeSettings();
+  toast('Token cleared', 'info');
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function markUnsaved() {
+  unsaved = true;
+  setBadge('unsaved', '● unsaved changes');
+  updateChars(document.getElementById('code-editor').value);
+}
+
+function setIexDisplay(cmd, isPlaceholder) {
+  const el = document.getElementById('iex-display');
+  el.textContent = cmd;
+  el.className = isPlaceholder ? 'iex-cmd placeholder' : 'iex-cmd';
+}
+
+function setBadge(type, text) {
+  const b = document.getElementById('gist-badge');
+  b.className = 'gist-badge' + (type === 'live' ? ' live' : type === 'unsaved' ? ' unsaved' : '');
+  document.getElementById('gist-badge-text').textContent = text;
+}
+
+function setSaving(on) {
+  const btn = document.getElementById('save-btn');
+  const lbl = document.getElementById('save-label');
+  btn.disabled = on;
+  lbl.textContent = on ? 'Publishing…' : '💾 Save & Publish';
+}
+
+function copyIex() {
+  if (!iexCmd) { toast('Publish the script first to get the iex command', 'err'); return; }
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(iexCmd).then(() => {
+    btn.classList.add('copied'); btn.textContent = '✓ Copied!';
+    toast('iex command copied!', 'ok');
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋 Copy'; }, 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = iexCmd; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Copied!', 'ok');
+  });
+}
+
+function openGist() {
+  if (currentGistUrl) window.open(currentGistUrl, '_blank');
+}
+
+function handleTab(e) {
+  if (e.key !== 'Tab') return;
+  e.preventDefault();
+  const ta = e.target, s = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.substring(0,s) + '    ' + ta.value.substring(end);
+  ta.selectionStart = ta.selectionEnd = s + 4;
+  markUnsaved();
+}
+
+function updateChars(code) {
+  document.getElementById('s-chars').textContent = code.split('\n').length + ' lines · ' + code.length + ' chars';
+}
+
+function setStatus(msg) {
+  document.getElementById('s-msg').textContent = msg;
+  setTimeout(() => document.getElementById('s-msg').textContent = 'Ready', 3500);
+}
+
+function setSaved(iso) {
+  if (!iso) return;
+  document.getElementById('s-saved').textContent = 'Last saved: ' + new Date(iso).toLocaleTimeString();
+}
+
+function setTemplate(tpl) {
+  activeTemplate = tpl;
+  document.getElementById('tpl-blank').className = 'btn btn-sm' + (tpl === 'blank' ? ' btn-primary' : '');
+  document.getElementById('tpl-sc').className     = 'btn btn-sm' + (tpl === 'sc'    ? ' btn-primary' : '');
+  document.getElementById('tpl-su').className     = 'btn btn-sm' + (tpl === 'su'    ? ' btn-primary' : '');
+  document.getElementById('tpl-both').className   = 'btn btn-sm' + (tpl === 'both'  ? ' btn-primary' : '');
+
+  document.getElementById('sc-fields').style.display   = tpl === 'sc'   ? '' : 'none';
+  document.getElementById('su-fields').style.display   = tpl === 'su'   ? '' : 'none';
+  document.getElementById('both-fields').style.display = tpl === 'both' ? '' : 'none';
+
+  const nameInput = document.getElementById('new-name');
+  const nameGroup = document.getElementById('name-field-group');
+
+  if (tpl === 'blank') {
+    nameGroup.style.display = '';
+    nameInput.placeholder = 'my-script.ps1';
+  } else {
+    // Deploy templates: name is optional, auto-generated if left blank
+    nameGroup.style.display = '';
+    document.getElementById('new-tag').value = 'deploy';
+    if (tpl === 'sc')   nameInput.placeholder = 'deploy-store-commerce.ps1 (optional)';
+    if (tpl === 'su')   nameInput.placeholder = 'deploy-scale-unit.ps1 (optional)';
+    if (tpl === 'both') nameInput.placeholder = 'deploy-scale-unit-store-commerce.ps1 (optional)';
+  }
+}
+
+function openNewModal() {
+  activeTemplate = 'blank';
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-tag').value = 'general';
+  document.getElementById('sc-only-url').value = '';
+  document.getElementById('su-only-url').value = '';
+  document.getElementById('both-su-url').value = '';
+  document.getElementById('both-sc-url').value = '';
+  document.getElementById('tpl-blank').className = 'btn btn-sm btn-primary';
+  document.getElementById('tpl-sc').className    = 'btn btn-sm';
+  document.getElementById('tpl-su').className    = 'btn btn-sm';
+  document.getElementById('tpl-both').className  = 'btn btn-sm';
+  document.getElementById('sc-fields').style.display   = 'none';
+  document.getElementById('su-fields').style.display   = 'none';
+  document.getElementById('both-fields').style.display = 'none';
+  document.getElementById('new-name').placeholder = 'my-script.ps1';
+  document.getElementById('new-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('new-name').focus(), 60);
+}
+
+function closeNewModal() { document.getElementById('new-modal').classList.add('hidden'); }
+
+document.getElementById('new-modal').addEventListener('click', e => { if (e.target.id === 'new-modal') closeNewModal(); });
+document.getElementById('settings-modal').addEventListener('click', e => { if (e.target.id === 'settings-modal') closeSettings(); });
+
+let toastTimer;
+function toast(msg, type='', dur=2800) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type ? `show ${type}` : 'show';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', dur);
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); saveScript(); }
+  if (e.key==='Escape') { closeNewModal(); closeSettings(); }
+});
+
+init();
+</script>
+</body>
+</html>
